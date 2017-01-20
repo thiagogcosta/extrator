@@ -22,6 +22,7 @@ public class Busca {
     String URL;
     ArrayList<String> linksGuardados = new ArrayList();
     ArrayList<String> linksAcessados = new ArrayList();
+    ArrayList<String> metaHeads = new ArrayList();
     int contador = 0;
     private Pattern pattern;
     private Matcher matcher;
@@ -36,13 +37,29 @@ public class Busca {
     public int getPages(String u){
         Document doc = null;
         Elements links = null;
+        Elements header = null;
+        
         try {
             if(!linksAcessados.contains(u)){
                 doc = Jsoup.connect(u).get();
                 links = doc.select("a[href]");
-
+                
+                //**********************************************EXTRAÇÃO METAS*******************************
+                try{
+                    header = doc.select("meta");
+                    
+                    for(Element meta : header) {
+                        if(meta.attr("property").equals("og:title")||meta.attr("property").equals("og:description")||meta.attr("property").equals("og:url")||meta.attr("property").equals("og:site_name")){
+                            metaHeads.add(meta.attr("property")+"-"+meta.attr("content"));
+                        }
+                    }
+                }catch(Exception e){
+                    System.out.println("Erro ao acessar os metas!");
+                }
+                
                 linksAcessados.add(u);
                  
+ 
                 for (Element a: links) {
                     
                     //verifico se não tem os formatos da excessão
@@ -59,11 +76,14 @@ public class Busca {
             }
         contador++;
         } catch (IOException e) {
-            System.err.println("For '" + URL + "': " + e.getMessage());
+            System.err.println("Erro em: '" + URL + "': " + e.getMessage());
             contador++;
         }
         if(contador == linksGuardados.size()){
-                return 1;
+            for(String a: metaHeads){
+                System.out.println(a);
+            }    
+            return 1;
         }else{
             System.out.println("Tamanho dos linksAcessados: "+linksAcessados.size());
             System.out.println("Tamanho dos linksGuardados: "+linksGuardados.size());
