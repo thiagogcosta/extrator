@@ -8,6 +8,6 @@ public class Extrator {
     
     public static void main(String[] args) {
         //1. Pick a URL from the frontier
-       new Busca("http://www.inovamarilia.com.br/");
+       new Busca("http://www.selecteducacional.com.br/");
     } 
 }
