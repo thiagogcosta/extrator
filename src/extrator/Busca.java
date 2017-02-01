@@ -27,6 +27,7 @@ public class Busca {
     String URL;
     private Model model;
     private Resource modelResource;
+    private long tempoInicial = System.currentTimeMillis();
     private ArrayList<String> linksGuardados = new ArrayList();
     private ArrayList<String> linksAcessados = new ArrayList();
     private ArrayList<Dado> mheads = new ArrayList();
@@ -147,9 +148,10 @@ public class Busca {
                     matcher = pattern.matcher(a.attr("abs:href"));
                      
                     if(!linksGuardados.contains(a.attr("abs:href"))){
+                        
                         if(a.attr("abs:href").contains(URL) && !matcher.find()){
                             linksGuardados.add(a.attr("abs:href"));
-                            //System.out.println("links: "+a.attr("abs:href"));
+                            System.out.println("links: "+a.attr("abs:href"));
                         }
                     }
                 }
@@ -164,7 +166,7 @@ public class Busca {
         
         if(contador == linksGuardados.size()){
             
-            for(Dado a: mheads){
+            /*for(Dado a: mheads){
                Dado d = new Dado("metadado", a.getTag(),a.getTag(),a.getBUri());
                MDado m = new MDado(a,d);
                mRdf.add(m);
@@ -173,7 +175,7 @@ public class Busca {
            System.out.println("*****************************************************************************");
             for(Dado x: mconteudo){
                 System.out.println("Tipo: "+x.getTipo()+" Tag: "+x.getTag()+" Conteudo: "+x.getConteudo()+" css: "+x.getCss());
-            }
+            }*/
             System.out.println("*****************************************************************************");
             for(Dado a: mheads){
                Dado d = new Dado("metadado", a.getTag(),a.getTag(),a.getBUri());
@@ -182,12 +184,18 @@ public class Busca {
             } 
             
             System.out.printf("tamanho mconteudo: "+mconteudo.size());
+            
+            
             for(int i = 0; i < mconteudo.size(); i++){
                 try{
                     if(mconteudo.get(i).getTipo().equals("metadado")&&mconteudo.get(i+1).getTipo().equals("metadado")){
                          Dado d = new Dado("metadado", mconteudo.get(i).getTag(),mconteudo.get(i).getTag(),mconteudo.get(i).getBUri());
                          MDado m = new MDado(d,mconteudo.get(i));
-                         mRdf.add(m);
+                         
+                         //Verificação de unicidade
+                         if(getUnicidade(m) == 1){
+                            mRdf.add(m);
+                         }
                     }else{
                         if(mconteudo.get(i).getTipo().equals("metadado")&&mconteudo.get(i+1).getTipo().equals("dado")){
                              int j = i;
@@ -195,7 +203,10 @@ public class Busca {
                             while(mconteudo.get(j).getTipo().equals("dado") && j<mconteudo.size()){
                                  //if(j < mconteudo.size()){
                                 MDado m = new MDado(mconteudo.get(i),mconteudo.get(j));
-                                mRdf.add(m);
+                                
+                                if(getUnicidade(m) == 1){
+                                    mRdf.add(m);
+                                }
                                      //System.out.println("J: "+j);
                                  //}
                                  //System.out.println("num: "+i+" Tipo: "+mconteudo.get(i).getTipo()+" Tag: "+mconteudo.get(i).getTag()+" Conteudo: "+mconteudo.get(i).getConteudo()+" css: "+mconteudo.get(i).getCss());
@@ -205,9 +216,11 @@ public class Busca {
 
                              i = j-1;
                         }else{
-                             Dado d = new Dado("dado", mconteudo.get(i).getTag(),mconteudo.get(i).getTag(),mconteudo.get(i).getBUri());
-                             MDado m = new MDado(d,mconteudo.get(i));
-                             mRdf.add(m);
+                            Dado d = new Dado("dado", mconteudo.get(i).getTag(),mconteudo.get(i).getTag(),mconteudo.get(i).getBUri());
+                            MDado m = new MDado(d,mconteudo.get(i));
+                            if(getUnicidade(m) == 1){
+                                mRdf.add(m);
+                            }
                         }
                     }
                 }catch(Exception e){
@@ -215,15 +228,16 @@ public class Busca {
                 }
             }
             
+            
             for(MDado a: mRdf){
                 
-                System.out.println("uri: "+a.getMetadado().getBUri()+"tipo: "+a.getMetadado().getTipo()+"descricao: "+a.getMetadado().getConteudo()+"tipo: "+a.getDado().getTipo()+"descricao: "+a.getDado().getConteudo());
+                System.out.println("uri: "+a.getMetadado().getBUri()+" tipo: "+a.getMetadado().getTipo()+" descricao: "+a.getMetadado().getConteudo()+" tipo: "+a.getDado().getTipo()+" descricao: "+a.getDado().getConteudo());
                 try {
                     //org.apache.log4j.BasicConfigurator.configure(new NullAppender());
                     modelResource.addProperty(DC.identifier, model.createResource(a.getMetadado().getBUri())
                             .addProperty(DC.identifier, model.createResource()      
-                            .addProperty(DC.title, a.getMetadado().getTipo())
-                            .addProperty(DC.description, a.getMetadado().getConteudo()))
+                            .addProperty(DC.title, a.getMetadado().getConteudo())
+                            .addProperty(DC.description, a.getDado().getConteudo()))
                                     
                     );
                 }catch(Exception e){
@@ -233,6 +247,9 @@ public class Busca {
             
             model.write(System.out);
              
+            long tempofinal = (System.currentTimeMillis() - tempoInicial)/1000;
+            
+            System.out.println("tempo final: "+tempofinal);
             return 1;
         }else{
             /*System.out.println("Tamanho dos linksAcessados: "+linksAcessados.size());
@@ -241,5 +258,14 @@ public class Busca {
             return getPages(linksGuardados.get(contador));
             
         }
+    }
+    
+    public int getUnicidade(MDado m){
+        for(MDado t: mRdf){
+            if((t.getDado().getTipo().equals(m.getDado().getTipo()))&&(t.getDado().getTag().equals(m.getDado().getTag()))&&(t.getDado().getConteudo().equals(m.getDado().getConteudo()))&&(t.getMetadado().getTipo().equals(m.getMetadado().getTipo()))&&(t.getMetadado().getTag().equals(m.getMetadado().getTag()))&&(t.getMetadado().getConteudo().equals(m.getMetadado().getConteudo()))){
+                return 0;
+            }   
+        }
+        return 1;
     }
 }
